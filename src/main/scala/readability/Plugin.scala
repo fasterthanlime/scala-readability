@@ -16,7 +16,7 @@ class Plugin(val global : Global) extends NSCPlugin {
 
   // This adds information to the output of "scalac -help" when the plugin is used.
   override val optionsHelp : Option[String] = Some(
-    "  -P:"+name+":nyan             Displays a cat flying over a rainbow\n"
+    "  -P:"+name+":nyan        Displays a cat flying over a rainbow\n"
   )
 
   // This is invoked by the compiled for all -P:readability:* options.

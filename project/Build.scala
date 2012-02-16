@@ -9,15 +9,27 @@ object ScalaReadability extends Build {
     if(!scriptFile.exists) {
       s.log.info("Generating script...")
       try {
+        val depsPaths = deps.map(_.data.absolutePath)
+        // One ugly hack... Likely to fail for Windows, but it's a Bash script anyway.
+        val scalaHomeDir = depsPaths.find(_.endsWith("lib/scala-library.jar")) match {
+          case None => throw new Exception("Couldn't guess SCALA_HOME.")
+          case Some(p) => p.substring(0, p.length - 21)
+        }
+        s.log.info("Will use " + scalaHomeDir + " as SCALA_HOME.")
+
         val nl = System.getProperty("line.separator")
         val fw = new java.io.FileWriter(scriptFile)
         fw.write("#!/bin/bash --posix" + nl)
-        val depsPaths = deps.map(_.data.absolutePath)
         fw.write("SCALACLASSPATH=\"")
         fw.write((out.absolutePath +: depsPaths).mkString(":"))
         fw.write("\"" + nl + nl)
-        fw.write("JAVA_OPTS=\"-Xmx2G -Xms512M\" scala -classpath ${SCALACLASSPATH} \\" + nl)
-        fw.write("  readability.Main $@" + nl)
+
+        // the Java command that uses sbt's local Scala to run the whole contraption.
+        fw.write("java -Xmx2G -Xms512M -classpath ${SCALACLASSPATH} -Dscala.home=\"")
+        fw.write(scalaHomeDir)
+        fw.write("\" -Dscala.usejavacp=true ")
+        fw.write("scala.tools.nsc.MainGenericRunner -classpath ${SCALACLASSPATH} ")
+        fw.write("readability.Main $@" + nl)
         fw.close
         scriptFile.setExecutable(true)
       } catch {
