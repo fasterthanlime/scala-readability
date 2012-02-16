@@ -4,7 +4,7 @@ import scala.tools.nsc.Global
 import scala.tools.nsc.plugins.{Plugin=>NSCPlugin,PluginComponent}
 
 class Plugin(val global : Global) extends NSCPlugin {
-  val name = "scala-readability"
+  val name = "readability"
   val description = "Snippet extraction for the readability study"
 
   val mainComponent = new ExtractionComponent(this) {
@@ -19,19 +19,15 @@ class Plugin(val global : Global) extends NSCPlugin {
     "  -P:"+name+":nyan             Displays a cat flying over a rainbow\n"
   )
 
-  // This is invoked by the compiled for all -P:scala-readability:* options.
-  // Only the * part is received.
+  // This is invoked by the compiled for all -P:readability:* options.
+  // Only the * part is passed..
   override def processOptions(options : List[String], error : String=>Unit) {
     for(option <- options) option match {
       case "nyan" => {
         import java.awt.Desktop
         import java.net.URI
 
-        try {
-          Desktop.getDesktop.browse(new URI("http://nyan.cat"))
-        } finally {
-          sys.exit(0)
-        } 
+        Desktop.getDesktop.browse(new URI("http://nyan.cat"))
       }
       case _ => error("Don't know what to do with option : -P:"+name+":"+option+".")
     }

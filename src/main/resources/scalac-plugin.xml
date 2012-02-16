@@ -1,4 +1,4 @@
 <plugin>
-    <name>scala-readability</name>
+    <name>readability</name>
     <classname>readability.Plugin</classname>
 </plugin>
