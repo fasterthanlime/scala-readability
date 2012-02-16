@@ -26,6 +26,10 @@ object ScalaReadability extends Build {
     }
   }
 
+  val quitTask = TaskKey[Unit]("quit", "Alias of exit") := {
+    sys.exit(0)
+  }
+
   private val nameKey = SettingKey[String]("name", "Name of the project")
   private val scalaVersionKey = SettingKey[String]("scalaVersion", "Scala Version")
   private val versionKey = SettingKey[String]("version", "Version")
@@ -33,6 +37,7 @@ object ScalaReadability extends Build {
   object ReadabilityProject {
     val settings = Seq(
       scriptTask,
+      quitTask,
       nameKey := "Scala Readability",
       scalaVersionKey := "2.9.1",
       versionKey := "1.0.0"
@@ -42,9 +47,6 @@ object ScalaReadability extends Build {
   lazy val root = Project(
     id = "scalac-readability",
     base = file("."),
-    settings =
-      Project.defaultSettings ++
-      Seq(scriptTask) ++
-      ReadabilityProject.settings
+    settings = Project.defaultSettings ++ ReadabilityProject.settings
   )
 }
