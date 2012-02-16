@@ -17,6 +17,26 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
   class ExtractionPhase(previous : Phase) extends StdPhase(previous) {
     def apply(unit : CompilationUnit) : Unit = {
       println("The phase is running on compilation unit " + unit + ".")
+      val dt = new DemoTraverser(unit)
+      dt.run()
+    }
+  }
+
+  class DemoTraverser(val unit : CompilationUnit) extends Traverser {
+    def run() {
+      traverse(unit.body)
+    }
+
+    override def traverse(tree : Tree) {
+      tree match {
+        case v @ ValDef(mods, _, _, rhs) => {
+          traverse(rhs)
+          println("Found a" + (if(mods.isMutable) " " else "n im") + "mutable variable definition : ")
+          println("  - name : " + v.name)
+          println("  - type : " + v.symbol.tpe.resultType)
+        }
+        case _ => super.traverse(tree)
+      } 
     }
   }
 }
