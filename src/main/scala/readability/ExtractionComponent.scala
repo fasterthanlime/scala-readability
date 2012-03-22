@@ -29,12 +29,27 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
 
     override def traverse(tree : Tree) {
       tree match {
+        /*
         case v @ ValDef(mods, _, _, rhs) => {
           traverse(rhs)
           println("Found a" + (if(mods.isMutable) " " else "n im") + "mutable variable definition : ")
           println("  - name : " + v.name)
           println("  - type : " + v.symbol.tpe.resultType)
           println("  - pos  : " + v.pos.toString)
+          println("  - is range? : " + v.pos.isRange)
+        }
+        */
+        case d @ DefDef(mods, _, _, _, _, rhs) => {
+          traverse(rhs)
+          println("Found a method definition : ")
+          println("  - name : " + d.name)
+          println("  - pos  : " + d.pos.toString)
+          println("  - is range? : " + d.pos.isRange)
+          println("  - rhspos  : " + d.rhs.pos.toString)
+          println("  - is range? : " + d.rhs.pos.isRange)
+          val lastChild = d.children.last
+          println("  - last child pos  : " + lastChild.pos.toString)
+          println("  - is range? : " + lastChild.pos.isRange)
         }
         case o @ _ => {
           // println("Found a " + o.getClass)
