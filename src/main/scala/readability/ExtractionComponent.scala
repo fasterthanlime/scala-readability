@@ -34,8 +34,12 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
           println("Found a" + (if(mods.isMutable) " " else "n im") + "mutable variable definition : ")
           println("  - name : " + v.name)
           println("  - type : " + v.symbol.tpe.resultType)
+          println("  - pos  : " + v.pos.toString)
         }
-        case _ => super.traverse(tree)
+        case o @ _ => {
+          // println("Found a " + o.getClass)
+          super.traverse(tree)
+        }
       } 
     }
   }
