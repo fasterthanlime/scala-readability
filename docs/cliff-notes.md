@@ -59,5 +59,12 @@ AST browser on them, I hope to be able to develop code that recognizes the AST s
 of some patterns, to detect their usage in the code and thus use these patters as
 criterions (similar to the way Buse used punctuation)
 
+### for vs foreach
+
+Trying to detect the difference between for and foreach will be tricky, the compiler
+apparently converts for loops into foreach calls before we reach the typer phase.
+
+Somedays I think constructing a lexer would be easier...
+
 [buse]: http://arrestedcomputing.com/readability/ "Buse's work"
 
