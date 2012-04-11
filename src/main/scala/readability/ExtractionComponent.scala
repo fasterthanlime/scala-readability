@@ -29,7 +29,6 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
 
     override def traverse(tree : Tree) {
       tree match {
-        /*
         case v @ ValDef(mods, _, _, rhs) => {
           traverse(rhs)
           println("Found a" + (if(mods.isMutable) " " else "n im") + "mutable variable definition : ")
@@ -38,7 +37,6 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
           println("  - pos  : " + v.pos.toString)
           println("  - is range? : " + v.pos.isRange)
         }
-        */
         case d @ DefDef(mods, _, _, _, _, rhs) => {
           traverse(rhs)
           println("Found a method definition : ")

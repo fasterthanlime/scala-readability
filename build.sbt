@@ -2,4 +2,6 @@ scalacOptions += "-deprecation"
 
 scalacOptions += "-unchecked"
 
-libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.9.1"
+scalaVersion := "2.10.0-M2"
+
+libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.10.0-M2"
