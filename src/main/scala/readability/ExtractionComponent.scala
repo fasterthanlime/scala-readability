@@ -3,6 +3,7 @@ package readability
 import scala.tools.nsc.{Global,Phase}
 import scala.tools.nsc.plugins.PluginComponent
 import scala.tools.nsc.util.OffsetPosition
+import scala.collection.immutable.Stack
 
 abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
   val global : Global // provided at instantiation time
@@ -17,7 +18,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
 
   class ExtractionPhase(previous : Phase) extends StdPhase(previous) {
     def apply(unit : CompilationUnit) : Unit = {
-      println("The phase is running on compilation unit " + unit + ".")
+      println("In compilation unit " + unit + ".")
       val dt = new SnippetFinder(unit)
       dt.run()
     }
@@ -26,6 +27,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
   class SnippetFinder(val unit : CompilationUnit) extends Traverser {
     // mutable state is evil but delicious
     var depth : Int = 0
+    var stack = new Stack()
 
     def run() {
       traverse(unit.body)
@@ -38,7 +40,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
     override def traverse(tree : Tree) {
       tree match {
         case v @ ValDef(mods, _, _, rhs) => {
-          puts("ValDef (name = %s, type = %s, line = %d" format (v.name, v.symbol.tpe.resultType, v.pos.line))
+          puts("val %s: %s          line %d" format (v.name, v.symbol.tpe.resultType, v.pos.line))
           
           depth += 1
           traverse(rhs)
@@ -46,7 +48,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
         }
         case d @ DefDef(mods, _, _, _, _, rhs) => {
           traverse(rhs)
-          puts("DefDef (name = %s, line = %d)" format(d.name, d.pos.line))
+          puts("def %s(...)         line %d" format(d.name, d.pos.line))
 
           depth += 1
           d.children.foreach (x => {
