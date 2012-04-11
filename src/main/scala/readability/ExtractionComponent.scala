@@ -24,17 +24,51 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
     }
   }
 
+  class Node(val tree: Tree) {
+    var minLine: Int = tree.pos.line 
+    var maxLine: Int = tree.pos.line 
+    var children: List[Node] = Nil
+
+    def enlarge(line: Int) {
+        if (line < minLine) minLine = line
+        if (line > maxLine) maxLine = line
+    }
+  }
+
   class SnippetFinder(val unit : CompilationUnit) extends Traverser {
     // mutable state is evil but delicious
-    var depth : Int = 0
-    var stack = new Stack()
+    var stack = new Stack[Node].push(new Node(unit.body))
 
     def run() {
       traverse(unit.body)
     }
 
+    /*
+     * println with automatic indentation according to the
+     * stack state.
+     */
     private def puts(s: String) {
-      println("  " * depth + s)
+      println("  " * stack.size + s)
+    }
+
+    /*
+     * This takes care of the stack elegantly: basically,
+     * it makes sure you don't forget to pop.
+     */
+    private def withNode(n: Node, f: => Unit) {
+        val parent = stack.top
+        parent.children =  parent.children :+ n
+
+        stack = stack.push(n)
+        f
+        stack = stack.pop
+    }
+
+    /*
+     * Adjust all nodes according to the line of the current element.
+     */
+    private def enlarge(line: Int) {
+        stack.foreach(_.enlarge(line))
     }
 
     override def traverse(tree : Tree) {
@@ -42,19 +76,19 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
         case v @ ValDef(mods, _, _, rhs) => {
           puts("val %s: %s          line %d" format (v.name, v.symbol.tpe.resultType, v.pos.line))
           
-          depth += 1
-          traverse(rhs)
-          depth -= 1
+          withNode(new Node(v), {
+            traverse(rhs)
+          })
         }
         case d @ DefDef(mods, _, _, _, _, rhs) => {
-          traverse(rhs)
           puts("def %s(...)         line %d" format(d.name, d.pos.line))
 
-          depth += 1
-          d.children.foreach (x => {
-            traverse(x)
+          withNode(new Node(d), {
+            traverse(rhs)
+            d.children.foreach (x => {
+              traverse(x)
+            })
           })
-          depth -= 1
         }
         case o @ _ => {
           /*
@@ -66,9 +100,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
           }
           */
 
-          //depth += 1
           super.traverse(tree)
-          //depth -= 1
         }
       } 
     }
