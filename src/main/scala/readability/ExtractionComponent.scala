@@ -7,8 +7,8 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
   val global : Global // provided at instantiation time
   import global._
 
-  override val runsRightAfter : Option[String] = Some("refchecks")
-  override val runsAfter : List[String]        = List("refchecks")
+  override val runsRightAfter : Option[String] = Some("typer")
+  override val runsAfter : List[String]        = List("typer")
 
   val phaseName = plugin.name
 
