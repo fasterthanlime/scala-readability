@@ -33,7 +33,6 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
 
     def fix(source: SourceFile) {
        val totalLines = source.offsetToLine(source.length - 1)
-       println("In " + source + ", total lines = " + totalLines)
        while(!isBalanced(source) && maxLine < totalLines) {
          maxLine += 1 
        }
@@ -58,16 +57,18 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
         def isBalanced0(chars: List[Char], stack: List[Char]): Boolean = chars match {
             case x :: xs => {
                 if (opens.contains(x)) {
-                    isBalanced0(xs, x :: stack)
+                    isBalanced0(xs, x :: stack) // consume one char and push on stack
                 } else if (closes.contains(x)) {
                   stack match {
                     case y :: ys =>
-                      if (x == braceMap(y)) isBalanced0(xs, ys) else false
-                    case _ => false // ran out of stack, too many closings
+                      if (x == braceMap(y)) {
+                        isBalanced0(xs, ys) // consume one char and pop stack
+                      } else false // closing brace didn't match last open brace
+                    case _ => false // tried to close when nothing was open
                   }
-                } else isBalanced0(xs, stack)
+                } else isBalanced0(xs, stack) // consume one char, leave stack alone
             }
-            case _ => stack.isEmpty
+            case _ => stack.isEmpty // only balanced if nothing is left open
         }
 
         isBalanced0(code.toList, Nil)
