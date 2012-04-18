@@ -34,20 +34,43 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
     def fix(source: SourceFile) {
        val totalLines = source.offsetToLine(source.length - 1)
        println("In " + source + ", total lines = " + totalLines)
-       while(balance(source) != 0 && maxLine < totalLines) {
+       while(!isBalanced(source) && maxLine < totalLines) {
          maxLine += 1 
        }
     }
 
-    def balance(source: SourceFile): Int = {
-        val content = ((minLine - 1) until maxLine).map(source.lineToString _).foldLeft("")(_ + _)
-        val braces = content.replaceAll("[^{}\\(\\)\\[\\]]", "")
-        val opening = braces.replaceAll("[^{\\(\\[]", "")
-        val closing = braces.replaceAll("[^}\\)\\]]", "")
-        val result = opening.length - closing.length
+    /**
+     * Returns true if the code in the minLine..maxLine span is
+     * well-balanced, braces-wise.
+     */
+    def isBalanced(source: SourceFile): Boolean = {
+        // this is sub-optimal, performance-wise, but its intent is clear, at least.
+        val span = ((minLine - 1) until maxLine)
+        val code = span.map(source.lineToString _).mkString("")
 
-        println(minLine + "-" + maxLine + ", braces = " + braces + ", balance = " + result)
-        result
+        val braces = '{' -> '}' ::
+                     '[' -> ']' :: 
+                     '(' -> ')' :: Nil
+        val opens  = braces.map(_._1)
+        val closes = braces.map(_._2)
+        val braceMap = braces.toMap
+
+        def isBalanced0(chars: List[Char], stack: List[Char]): Boolean = chars match {
+            case x :: xs => {
+                if (opens.contains(x)) {
+                    isBalanced0(xs, x :: stack)
+                } else if (closes.contains(x)) {
+                  stack match {
+                    case y :: ys =>
+                      if (x == braceMap(y)) isBalanced0(xs, ys) else false
+                    case _ => false // ran out of stack, too many closings
+                  }
+                } else isBalanced0(xs, stack)
+            }
+            case _ => stack.isEmpty
+        }
+
+        isBalanced0(code.toList, Nil)
     }
 
     def enlarge(line: Int) {
