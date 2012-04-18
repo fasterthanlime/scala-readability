@@ -5,6 +5,8 @@ import scala.tools.nsc.plugins.PluginComponent
 import scala.tools.nsc.util.{SourceFile,OffsetPosition}
 import scala.collection.immutable.Stack
 
+import scala.annotation.tailrec
+
 abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
   val global : Global // provided at instantiation time
   import global._
@@ -54,7 +56,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
         val closes = braces.map(_._2)
         val braceMap = braces.toMap
 
-        def isBalanced0(chars: List[Char], stack: List[Char]): Boolean = chars match {
+        @tailrec def isBalanced0(chars: List[Char], stack: List[Char]): Boolean = chars match {
             case x :: xs => {
                 if (opens.contains(x)) {
                     isBalanced0(xs, x :: stack) // consume one char and push on stack
