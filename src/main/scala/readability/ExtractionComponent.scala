@@ -2,7 +2,7 @@ package readability
 
 import scala.tools.nsc.{Global,Phase}
 import scala.tools.nsc.plugins.PluginComponent
-import scala.tools.nsc.util.OffsetPosition
+import scala.tools.nsc.util.{SourceFile,OffsetPosition}
 import scala.collection.immutable.Stack
 
 abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
@@ -19,8 +19,10 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
   class ExtractionPhase(previous : Phase) extends StdPhase(previous) {
     def apply(unit : CompilationUnit) : Unit = {
       println("In compilation unit " + unit + ".")
-      val dt = new SnippetFinder(unit)
-      dt.run()
+      val dt = new LineageFactory(unit)
+      val lineage = dt.run()
+      lineage.children.foreach(x => x.fix(unit.source))
+      lineage.print()
     }
   }
 
@@ -29,26 +31,60 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
     var maxLine: Int = tree.pos.line 
     var children: List[Node] = Nil
 
+    def fix(source: SourceFile) {
+       val totalLines = source.offsetToLine(source.length - 1)
+       println("In " + source + ", total lines = " + totalLines)
+       while(balance(source) != 0 && maxLine < totalLines) {
+         maxLine += 1 
+       }
+    }
+
+    def balance(source: SourceFile): Int = {
+        val content = ((minLine - 1) until maxLine).map(source.lineToString _).foldLeft("")(_ + _)
+        val braces = content.replaceAll("[^{}\\(\\)\\[\\]]", "")
+        val opening = braces.replaceAll("[^{\\(\\[]", "")
+        val closing = braces.replaceAll("[^}\\)\\]]", "")
+        val result = opening.length - closing.length
+
+        println(minLine + "-" + maxLine + ", braces = " + braces + ", balance = " + result)
+        result
+    }
+
     def enlarge(line: Int) {
         if (line < minLine) minLine = line
         if (line > maxLine) maxLine = line
     }
+
+    def print() {
+        print0(0)
+    }
+
+    private def puts(level: Int, s: String) {
+      println("  " * level + s)
+    }
+
+    private def print0(level: Int) {
+        tree match {
+          case v @ ValDef(mods, _, _, rhs) => {
+            //puts(level, "val %s: %s     lines %d-%d" format (v.name, v.symbol.tpe.resultType, minLine, maxLine))
+          }
+          case d @ DefDef(mods, _, _, _, _, rhs) => {
+            puts(level, "def %s(...)    lines %d-%d" format(d.name, minLine, maxLine))
+          }
+          case _ => {}
+        }
+
+        children.foreach(x => x.print0(level + 1))
+    }
   }
 
-  class SnippetFinder(val unit : CompilationUnit) extends Traverser {
+  class LineageFactory(val unit : CompilationUnit) extends Traverser {
     // mutable state is evil but delicious
     var stack = new Stack[Node].push(new Node(unit.body))
 
-    def run() {
+    def run() : Node = {
       traverse(unit.body)
-    }
-
-    /*
-     * println with automatic indentation according to the
-     * stack state.
-     */
-    private def puts(s: String) {
-      println("  " * stack.size + s)
+      stack.top
     }
 
     /*
@@ -74,15 +110,11 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
     override def traverse(tree : Tree) {
       tree match {
         case v @ ValDef(mods, _, _, rhs) => {
-          puts("val %s: %s          line %d" format (v.name, v.symbol.tpe.resultType, v.pos.line))
-          
           withNode(new Node(v), {
             traverse(rhs)
           })
         }
         case d @ DefDef(mods, _, _, _, _, rhs) => {
-          puts("def %s(...)         line %d" format(d.name, d.pos.line))
-
           withNode(new Node(d), {
             traverse(rhs)
             d.children.foreach (x => {
@@ -91,14 +123,12 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
           })
         }
         case o @ _ => {
-          /*
           o.pos match {
             case p: OffsetPosition =>
-              puts(o.getClass.getSimpleName + " at line " + p.line)
+              enlarge(p.line)
             case _ =>
-              puts(o.getClass.getSimpleName + " " + o.pos.getClass)
+              { /* Tough luck! */ }
           }
-          */
 
           super.traverse(tree)
         }
