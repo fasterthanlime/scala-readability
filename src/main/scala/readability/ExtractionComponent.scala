@@ -95,7 +95,13 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
         tree match {
           case v @ ValDef(mods, _, _, rhs) => {}
           case a @ Apply(fun, args) => {
-            puts(level, "apply on %s    lines %d-%d" format(fun symbol, minLine, maxLine))
+            // Note to self: don't call fun.symbol.name.toString, it'll
+            // throw an IllegalFormatConversionException
+            if ("%s".format(fun.symbol.name) == "foreach") {
+              puts(level, "foreach    lines %d-%d" format(minLine, maxLine))
+            } else {
+              // puts(level, "apply on %s (of type %s) lines %d-%d" format(fun.symbol.name, fun.symbol.getClass.getSimpleName, minLine, maxLine))
+            }
           }
           case d @ DefDef(mods, _, _, _, _, rhs) => {
             puts(level, "def %s(...)    lines %d-%d" format(d.name, minLine, maxLine))
