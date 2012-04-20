@@ -97,11 +97,17 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
           case a @ Apply(fun, args) => {
             // Note to self: don't call fun.symbol.name.toString, it'll
             // throw an IllegalFormatConversionException
-            if ("%s".format(fun.symbol.name) == "foreach") {
-              puts(level, "foreach    lines %d-%d" format(minLine, maxLine))
-            } else {
-              // puts(level, "apply on %s (of type %s) lines %d-%d" format(fun.symbol.name, fun.symbol.getClass.getSimpleName, minLine, maxLine))
-            }
+            // Note to others: I'm ashamed of this workaround, but what else to do?
+            symbolName = "%s".format(fun.symbol.name)
+
+            symbolName.match {
+                case "foreach" => {
+                  puts(level, "foreach    lines %d-%d" format(minLine, maxLine))
+                }
+                case _ => {
+                  // puts(level, "apply on %s (of type %s) lines %d-%d" format(fun.symbol.name, fun.symbol.getClass.getSimpleName, minLine, maxLine))
+                }
+              }
           }
           case d @ DefDef(mods, _, _, _, _, rhs) => {
             puts(level, "def %s(...)    lines %d-%d" format(d.name, minLine, maxLine))
@@ -153,8 +159,17 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
             d.children.foreach { traverse _ }
           })
         }
+        // FIXME: case GenericApply?
         case a @ Apply(fun, args) => {
+          // TODO: there are a shitload of Applies, don't retain them all.
           withNode(new Node(a), {
+            traverse(fun)
+            args.foreach { traverse _ }
+          })
+        }
+        case ta @ TypeApply(fun, args) => {
+          // TODO: filter here too.
+          withNode(new Node(ta), {
             traverse(fun)
             args.foreach { traverse _ }
           })
