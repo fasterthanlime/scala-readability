@@ -23,7 +23,7 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
       println("In compilation unit " + unit + ".")
       val dt = new LineageFactory(unit)
       val lineage = dt.run()
-      lineage.children.foreach(x => x.fix(unit.source))
+      lineage.fix(unit.source)
       lineage.print()
     }
   }
@@ -38,6 +38,8 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
        while(!isBalanced(source) && maxLine < totalLines) {
          maxLine += 1 
        }
+
+       children.foreach { _.fix(source) }
     }
 
     /**
@@ -91,8 +93,9 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
 
     private def print0(level: Int) {
         tree match {
-          case v @ ValDef(mods, _, _, rhs) => {
-            //puts(level, "val %s: %s     lines %d-%d" format (v.name, v.symbol.tpe.resultType, minLine, maxLine))
+          case v @ ValDef(mods, _, _, rhs) => {}
+          case a @ Apply(fun, args) => {
+            puts(level, "apply on %s    lines %d-%d" format(fun symbol, minLine, maxLine))
           }
           case d @ DefDef(mods, _, _, _, _, rhs) => {
             puts(level, "def %s(...)    lines %d-%d" format(d.name, minLine, maxLine))
@@ -136,16 +139,18 @@ abstract class ExtractionComponent(plugin : Plugin) extends PluginComponent {
     override def traverse(tree : Tree) {
       tree match {
         case v @ ValDef(mods, _, _, rhs) => {
-          withNode(new Node(v), {
-            traverse(rhs)
-          })
+          withNode(new Node(v), { traverse(rhs) })
         }
         case d @ DefDef(mods, _, _, _, _, rhs) => {
           withNode(new Node(d), {
             traverse(rhs)
-            d.children.foreach (x => {
-              traverse(x)
-            })
+            d.children.foreach { traverse _ }
+          })
+        }
+        case a @ Apply(fun, args) => {
+          withNode(new Node(a), {
+            traverse(fun)
+            args.foreach { traverse _ }
           })
         }
         case o @ _ => {
